@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>开关灯小游戏</title>
+
+</head>
+<body>
+
+<a href="http://baike.baidu.com/link?url=J1DaoQXezIqnus-DmshyUyyfO-gm_cQH-lVKQCy7vG51cyPqZuO27h-qELG61PrQjfD80UsLC76iSFWLiOeeW_
+">查看游戏规则</a>
+<br/><br/>
+<button>重新开始</button>
+
+<canvas style="position: absolute;top:50%;left:50%;transform:translate(-50%, -50%)"></canvas>
+
+<script>
+    ;(function () {
+        'use strict';
+
+        /**
+         * 开关灯构造函数
+         * @constructor
+         * @param {Element} canvas - 画布 html 对象
+         * @param {Object} options - 开关灯配置参数
+         * @param {String} options.xx - 开关灯 xxx
+         */
+        function Light (canvas, options) {
+            if (!(this instanceof Light)) {
+                return new Light(canvas, options);
+            }
+
+            this.init(canvas, options);
+        };
+
+        Light.prototype = {
+            constructor: Light
+
+            /**
+             * 游戏初始化
+             * @param {Element} canvas - 画布 HTML 对象
+             * @param {Object} options - 游戏参数配置
+             */
+            , init: function (canvas, options) {
+                var _this = this;
+
+                _this.canvas = canvas;
+                _this.setOptions(options);
+                _this.bind();
+            }
+
+            /**
+             * 设置参数信息
+             * @param {Object} options - 设置游戏参数
+             */
+            , setOptions: function (options) {
+                var _this = this
+                        , key
+                        , _options = _this.getOptions();
+
+                if (typeof options != 'object') {
+                    return;
+                }
+
+                for (key in options) {
+                    if (options.hasOwnProperty(key)) {
+                        _options[key] = options[key];
+                    }
+                }
+            }
+
+            /**
+             * 获取参数信息
+             * @param {String} [key] - 要获取参数的字段名称
+             *
+             * @returns 返回参数信息
+             */
+            , getOptions: function (key) {
+                var _this = this
+                        , options = _this.options
+                        , defaults = {
+                            row: 10
+                            , col: 10
+                            , radius: 50
+                            , cellspacing: 0
+                            , lightenColor: 'yellow'
+                            , darkenColor: 'black'
+                        }
+                        , key;
+
+                if (!options) {
+                    _this.options = options = defaults;
+                }
+
+                if (typeof key == 'string') {
+                    return options[key];
+                }
+
+                return options;
+            }
+
+            /**
+             * 游戏渲染入口
+             */
+            , render: function () {
+                var _this = this
+                        , options = _this.getOptions()
+                        , canvas = _this.canvas
+                        , ctx = canvas.getContext('2d')
+                        , map = _this.map
+                        , row = options.row
+                        , col = options.col
+                        , radius = options.radius
+                        , cellspacing = options.cellspacing
+                        , lightenColor = options.lightenColor
+                        , darkenColor = options.darkenColor
+                        , lightCoords = []
+                        , i
+                        , j;
+
+                // 清空画布
+                canvas.width = col * (radius * 2 + cellspacing) + cellspacing;
+                canvas.height = row * (radius * 2 + cellspacing) + cellspacing;
+
+                // 创建地图
+                if (!map) {
+                    map = _this.map = _this.createMap(row, col);
+                }
+
+                for (i = 0; i < row; i++) {
+                    lightCoords[i] = [];
+
+                    for (j = 0; j < col; j++) {
+                        var color = map[i][j] ? lightenColor : darkenColor
+                                , x = (cellspacing + radius * 2) * j + (cellspacing + radius)
+                                , y = (cellspacing + radius * 2) * i + (cellspacing + radius);
+
+                        lightCoords[i].push({
+                            x: x
+                            , y: y
+                        });
+
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+
+                _this.lightCoords = lightCoords;
+            }
+
+            /**
+             * 创建游戏地图矩阵
+             * @param {Number} row - 创建的行数
+             * @param {Number} col - 创建的列数
+             *
+             * @returns {Array} map - 地图矩阵
+             */
+            , createMap: function (row, col) {
+                var _this = this
+                        , map = []
+                        , i
+                        , j;
+
+                for (i = 0; i < row; i++) {
+                    map[i] = [];
+
+                    for (j = 0; j < col; j++) {
+                        map[i].push(0);
+                    }
+                }
+
+                return map;
+            }
+
+            /**
+             * 更新灯的地图信息
+             * @param {Object[Array]} coords - 待更新的坐标
+             * @param {Number} coords[0].x - 灯所在的 x 坐标(即所在列)
+             * @param {Number} coords[0].y - 灯所在的 y 坐标(即所在行)
+             */
+            , update: function (coords) {
+                var _this = this
+                        , map = _this.map
+                        , i, x, y
+                        , coord
+                        , len;
+
+                len = coords.length;
+
+                if (!coords || !coords.length) {
+                    return;
+                }
+
+                for (i = 0; i < len; i++) {
+                    coord = coords[i];
+                    x = coord.x;
+                    y = coord.y;
+
+                    // 先匹配行在匹配列
+                    map[y][x] = coord.lighten;
+                }
+
+                _this.render();
+            }
+
+            /**
+             * 重新开始游戏
+             */
+            , replay: function () {
+                var _this = this;
+                _this.map = null;
+                _this.render();
+            }
+
+            /**
+             * 切换指定灯
+             * @param {Object} coord - 待切换灯所在的坐标(行和列)
+             * @param {Number} coord.x - 待切换灯所在的 x 坐标(即所在列)
+             * @param {Number} coord.y - 待切换灯所在的 y 坐标(即所在行)
+             * @param {Number} lighten - 开关灯的标识. 取值[0(关灯) | 1(开灯)]
+             */
+            , turn: function (coord, lighten) {
+                var _this = this
+                        , map = _this.map
+                        , lights = []
+                        , aroundLights
+                        , arroundLight
+                        , i
+                        , len;
+
+                coord.lighten = (!!lighten * 1);
+                lights.push(coord);
+
+                aroundLights = _this.getAroundLights(coord);
+                len = aroundLights.length;
+
+                for (i = 0; i < len; i++) {
+                    arroundLight = aroundLights[i];
+                    arroundLight.lighten = (!map[arroundLight.y][arroundLight.x] * 1);
+                }
+
+                _this.update(lights.concat(aroundLights));
+            }
+
+            /**
+             * 开启指定灯
+             * @param {Object} coord - 参见 turn 方法
+             */
+            , turnOn: function (coord) {
+                this.turn(coord, 1);
+            }
+
+            /**
+             * 关闭指定灯
+             * @param {Object} coord - 参见 turn 方法
+             */
+            , turnOff: function (coord) {
+                this.turn(coord, 0);
+            }
+
+            /**
+             * 切换指定灯
+             * @param {Object} coord - 参见 turn 方法
+             */
+            , turnToggle: function (coord) {
+                var _this = this
+                        , map = _this.map
+                        , lighten;
+
+                lighten = map[coord.y][coord.x];
+
+                if (lighten) {
+                    _this.turnOff(coord);
+                }
+                else {
+                    _this.turnOn(coord);
+                }
+            }
+
+            /**
+             * 判断鼠标是否在灯内部
+             * @param {Object} cursor - 鼠标坐标
+             * @param {Number} cursor.x - 鼠标 x 坐标
+             * @param {Number} cursor.y - 鼠标 y 坐标
+             *
+             * @returns {Object | Boolean} coord - 灯所在的位置 或 false
+             */
+            , isInLight: function (cursor) {
+                var _this = this
+                        , options = _this.getOptions()
+                        , map = _this.map
+                        , lightCoords = _this.lightCoords
+                        , radius = options.radius
+                        , row = options.row
+                        , col = options.col
+                        , distance
+                        , isInner
+                        , lightCoord
+                        , coord = {}
+                        , i
+                        , j;
+
+                isInner = false;
+
+                for (i = 0; i < row; i++) {
+                    if (isInner) {
+                        break;
+                    }
+
+                    coord.y = i;
+
+                    for (j = 0; j < col; j++) {
+                        coord.x = j;
+                        lightCoord = lightCoords[i][j];
+                        distance = Math.sqrt(Math.pow(cursor.x - lightCoord.x, 2) + Math.pow(cursor.y - lightCoord.y, 2));
+
+                        if (distance <= radius) {
+                            isInner = true;
+                            break;
+                        }
+                    }
+                }
+
+                return (isInner && coord);
+            }
+
+            /**
+             * 获取指定灯周围(上下左右)所有的灯
+             * @param {Object} 指定灯所在的坐标(行和列)
+             * @param {Number} coord.x - 待切换灯所在的 x 坐标(即所在列)
+             * @param {Number} coord.y - 待切换灯所在的 y 坐标(即所在行)
+             */
+            , getAroundLights: function (coord) {
+                var _this = this
+                        , options = _this.getOptions()
+                        , row = options.row
+                        , col = options.col
+                        , aroundLights = []
+                        , x
+                        , y;
+
+                if (!coord) {
+                    return aroundLights;
+                }
+
+                x = coord.x;
+                y = coord.y;
+
+                // 上方的灯
+                if (y > 0) {
+                    aroundLights.push({
+                        x: x
+                        , y: y - 1
+                    });
+                }
+
+                // 右方的灯
+                if (x < col - 1) {
+                    aroundLights.push({
+                        x: x + 1
+                        , y: y
+                    });
+                }
+
+                // 下方的灯
+                if (y < row - 1) {
+                    aroundLights.push({
+                        x: x
+                        , y: y + 1
+                    });
+                }
+
+                // 左方的灯
+                if (x > 0) {
+                    aroundLights.push({
+                        x: x - 1
+                        , y: y
+                    });
+                }
+
+                return aroundLights;
+            }
+
+
+            /**
+             * 对画布绑定事件
+             */
+            , bind: function () {
+                var _this = this
+                        , canvas = _this.canvas;
+
+                _this._onClick = function (e) {
+                    _this.onClick(e);
+                };
+
+                canvas.addEventListener('click', _this._onClick, false);
+            }
+
+            /**
+             * 解绑画布事件
+             */
+            , unbind: function () {
+                var _this = this
+                        , canvas = _this.canvas;
+
+                canvas.removeEventListener('click', _this._onClick);
+            }
+
+            /**
+             * 销毁画布
+             */
+            , destroy: function () {
+                var _this = this
+                        , canvas = _this.canvas;
+
+                canvas.parentNode.removeChild(canvas);
+                _this.unbind();
+            }
+
+            /**
+             * 对画布点击事件
+             */
+            , onClick: function (e) {
+                var _this = this
+                        , rect
+                        , coord
+                        , lightCoord;
+
+                rect = _this.canvas.getBoundingClientRect();
+                coord = {
+                    x: e.clientX - rect.left
+                    , y: e.clientY - rect.top
+                }
+
+                lightCoord = _this.isInLight(coord);
+
+                if (!lightCoord) {
+                    return;
+                }
+
+                _this.turnToggle(lightCoord);
+            }
+        };
+
+        window.Light = Light;
+    }());
+
+
+    // 渲染开关灯游戏
+    ;(function () {
+        var canvas = document.querySelector('canvas')
+                , btn = document.querySelector('button')
+                , light = new Light(canvas, {
+                    row: 5
+                    , col: 5
+                    , radius: 30
+                    , cellspacing: 10
+                    , lightenColor: '#ffe5a8'
+                    , darkenColor: '#ddd'
+                });
+
+        light.render();
+        btn.addEventListener('click', function (e) {
+            light.replay();
+        }, false);
+    }());
+</script>
+
+
+</body>
+</html>
