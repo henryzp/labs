@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>geolocation</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width">
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+</head>
+
+<body>
+<div id="location" style="position:absolute;z-index:1;"></div>
+<div style="position:absolute;width:100%;height:100%;" id="map"></div>
+
+<script type="text/javascript" src="http://api.map.baidu.com/api?type=quick&ak=Wm7GyPdNO0lm7v4oaldw5GAG&v=1.0"></script>
+
+
+<script>
+var geo = navigator.geolocation;
+var div = document.querySelector('#location');
+
+var f = function (lat, lng) {
+	var map = new BMap.Map("map");    // 创建Map实例
+	var point = new BMap.Point(lng,lat); // 创建点坐标
+	map.centerAndZoom(point,20);                 // 初始化地图,设置中心点坐标和地图级别。
+	map.addControl(new BMap.ZoomControl());      //添加地图缩放控件
+}
+
+//f(30.189703463954096,120.18589143758624);
+
+geo.getCurrentPosition(function (position) {
+	var key, str = 'success:<br />' ;
+	
+	var coords = position.coords,
+		o = {
+			latitude: coords.latitude, // 纬度
+			longitude: coords.longitude, // 经度
+			altitude: coords.altitude, // 海拔
+			accuracy: coords.accuracy, // 精确度
+			altitudeAccuracy: coords.altitudeAccuracy, // 海拔精确度
+			heading: coords.heading, // 与供应商之间的角度？
+			speed: coords.speed // 与供应商自己相对速度?
+		};
+	
+	str += '维度=' + position.coords.latitude  + '<br />';
+	str += '经度=' + position.coords.longitude  + '<br />';
+	str += '海拔=' + position.coords.altitude  + '<br />';
+	str += '精确度=' +  position.coords.accuracy + '<br />';
+	str += '海拔精确度=' + position.coords.altitudeAccuracy  + '<br />';
+	str += 'heading=' + position.coords.heading  + '<br />';
+	str += 'speed=' + position.coords.speed  + '<br />';
+	str += 'timestamp=' +  position.timestamp + '<br />';
+	
+	div.innerHTML = str;
+	f(position.coords.latitude, position.coords.longitude);
+}, function () {
+	div.innerHTML = 'fail';
+	console.log('fail', arguments);
+}, {
+	//timeout: 30000,
+	//enableHighAcuracy: true,
+	//maximumAge: ''
+});
+</script>
+</body>
+</html>
